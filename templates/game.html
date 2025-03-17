@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>難易度選択 - JAIJAI</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <a href="/" class="home-button">メインへ</a>
+
+    <div class="floating-icons">
+        
+        <span class="icon" style="top: 25%; right: 20%;">○</span>
+        <span class="icon" style="bottom: 35%; left: 25%;">+</span>
+        <span class="icon" style="bottom: 25%; right: 30%;">↗</span>
+    </div>
+
+    <div class="container">
+        <form action="/game" method="post">
+            <button type="submit" name="ai_level" value="weak" class="mode-button">イージーモード</button>
+            <button type="submit" name="ai_level" value="normal" class="mode-button">ノーマルモード</button>
+            <button type="submit" name="ai_level" value="strong" class="mode-button">ハードモード</button>
+        </form>
+    </div>
+</body>
+</html>

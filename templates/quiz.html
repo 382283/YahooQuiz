@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>クイズ - AI早押しクイズ対決</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="progress">
+            第{{ round }}問 / 全{{ total }}問
+        </div>
+        
+        {% if result %}
+            <div class="result-area">
+                {% if result == 'ai_correct' or result == 'ai_wrong' %}
+                    <div class="ai-answer-animation">
+                        <div class="thinking-animation">
+                            <div class="ai-icon">🤖</div>
+                            <div class="thinking-dots">
+                                <span class="dot">.</span>
+                                <span class="dot">.</span>
+                                <span class="dot">.</span>
+                            </div>
+                            <div class="ai-thinking-message">{{ ai_thinking }}</div>
+                        </div>
+                        {% if result == 'ai_correct' %}
+                            <div class="ai-result correct">
+                                <p>AIの回答: {{ answer }}</p>
+                                <p class="result-message">正解！</p>
+                            </div>
+                        {% else %}
+                            <div class="ai-result wrong">
+                                <p>AIの回答: ???</p>
+                                <p class="result-message">不正解...</p>
+                            </div>
+                        {% endif %}
+                        <p class="explanation">{{ explanation }}</p>
+                    </div>
+                {% elif result == 'correct' %}
+                    <div class="player-result correct">
+                        <h2>正解！</h2>
+                        <p class="explanation">{{ explanation }}</p>
+                    </div>
+                {% else %}
+                    <div class="player-result wrong">
+                        <h2>不正解...</h2>
+                        <p>正解は: {{ answer }}</p>
+                        <p class="explanation">{{ explanation }}</p>
+                    </div>
+                {% endif %}
+                <a href="/quiz" class="next-button">次の問題へ</a>
+            </div>
+        {% else %}
+        <div class="quiz-area">
+            <!-- 記事表示部分 -->
+            <div id="article-section" class="article-section">
+                <div class="timer-bar" id="timer-bar"></div>
+                <h3 class="article-title">{{ article_title }}</h3>
+                <div class="article-content">
+                    {{ article_content }}
+                </div>
+                <div class="article-source">
+                    <a href="{{ article_url }}" target="_blank" rel="noopener noreferrer">出典: Yahoo!ニュース</a>
+                </div>
+            </div>
+    
+            <!-- クイズ部分（最初は非表示） -->
+            <div id="quiz-section" class="quiz-section" style="display: none;">
+                <h2>{{ question }}</h2>
+                
+                <!-- AI思考エフェクト -->
+                <div class="ai-status">
+                    <div class="ai-thinking">
+                        <div class="ai-icon">🤖</div>
+                        <div class="thinking-dots">
+                            <span class="dot">.</span>
+                            <span class="dot">.</span>
+                            <span class="dot">.</span>
+                        </div>
+                        <div class="ai-thinking-message">{{ ai_thinking }}</div>
+                    </div>
+                    <div class="timer" id="timer">0.0秒</div>
+                </div>
+    
+                <form id="quiz-form" action="/quiz" method="post">
+                    <input type="hidden" name="time" id="reaction-time">
+                    <button type="button" id="buzzer" class="buzzer-button">早押しボタン</button>
+                    <div id="answer-input" class="answer-input" style="display: none;">
+                        <input type="text" name="answer" required placeholder="回答を入力">
+                        <button type="submit">回答する</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+            const articleSection = document.getElementById('article-section');
+            const quizSection = document.getElementById('quiz-section');
+            const startTime = Date.now();
+
+            // 5秒後に記事を非表示にしてクイズを表示
+            setTimeout(() => {
+                articleSection.classList.add('fade-out');
+                setTimeout(() => {
+                    articleSection.style.display = 'none';
+                    quizSection.style.display = 'block';
+                    setTimeout(() => {
+                        quizSection.classList.add('visible');
+                    }, 50);
+                }, 500);
+            }, 5000);
+
+            // 早押しボタンの処理
+            const buzzer = document.getElementById('buzzer');
+            const answerInput = document.getElementById('answer-input');
+            const reactionTime = document.getElementById('reaction-time');
+            const timer = document.getElementById('timer');
+            
+            function updateTimer() {
+                const currentTime = Date.now();
+                const elapsedTime = (currentTime - startTime) / 1000;
+                timer.textContent = elapsedTime.toFixed(1) + '秒';
+                requestAnimationFrame(updateTimer);
+            }
+            
+            // タイマーの更新は記事が消えた後に開始
+            setTimeout(() => {
+                updateTimer();
+            }, 5000);
+            
+            buzzer.addEventListener('click', function() {
+                const endTime = Date.now();
+                const timeTaken = (endTime - startTime) / 1000;
+                reactionTime.value = timeTaken;
+                
+                buzzer.style.display = 'none';
+                answerInput.style.display = 'block';
+                document.querySelector('input[name="answer"]').focus();
+            });
+        });
+        </script>
+        {% endif %}
+    </div>
+
+    
+</body>
+</html>
