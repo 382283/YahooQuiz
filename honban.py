@@ -3,6 +3,7 @@ import google.generativeai as genai
 import random
 import requests
 from bs4 import BeautifulSoup
+import os
 
 class QuizGenerator:
     def __init__(self, api_key):
@@ -73,7 +74,7 @@ class QuizGenerator:
         """Yahoo!ニュースから記事を取得"""
         try:
             url = "https://news.yahoo.co.jp/topics/business"
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, timeout=10)  # タイムアウト追加
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
             
@@ -84,7 +85,7 @@ class QuizGenerator:
                 random_article = random.choice(article_links)
                 article_url = random_article.get('href')
                 
-                article_response = requests.get(article_url, headers=self.headers)
+                article_response = requests.get(article_url, headers=self.headers, timeout=10)
                 article_soup = BeautifulSoup(article_response.text, 'html.parser')
                 
                 full_article_link = article_soup.find('a', {
@@ -94,7 +95,7 @@ class QuizGenerator:
                 
                 if full_article_link:
                     full_url = full_article_link.get('href')
-                    full_response = requests.get(full_url, headers=self.headers)
+                    full_response = requests.get(full_url, headers=self.headers, timeout=10)
                     full_soup = BeautifulSoup(full_response.text, 'html.parser')
                     
                     article_content = full_soup.find('div', class_='article_body')

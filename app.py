@@ -2,12 +2,17 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from datetime import datetime
 from honban import QuizGenerator
+import os
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')
 
-# QuizGeneratorのインスタンスを作成
-quiz_generator = QuizGenerator(api_key='AIzaSyApCo7OjE2C4rDc00lmhreYTGbFvGfpsTQ')
+# QuizGeneratorのインスタンスを作成（環境変数からAPIキーを取得）
+api_key = os.environ.get('GEMINI_API_KEY')
+if not api_key:
+    raise ValueError("GEMINI_API_KEY environment variable is required")
+
+quiz_generator = QuizGenerator(api_key=api_key)
 
 @app.route('/')
 def index():
@@ -145,4 +150,5 @@ def result():
                         ai_level=ai_level)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
