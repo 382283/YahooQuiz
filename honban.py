@@ -35,7 +35,28 @@ class QuizGenerator:
             }
         }
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        
+        # 複数のモデル名を試す
+        model_names = [
+            'models/gemini-1.5-flash',
+            'models/gemini-1.5-pro', 
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
+            'gemini-pro'
+        ]
+        
+        self.model = None
+        for model_name in model_names:
+            try:
+                self.model = genai.GenerativeModel(model_name)
+                print(f"成功: モデル '{model_name}' を使用します")
+                break
+            except Exception as e:
+                print(f"モデル '{model_name}' の初期化に失敗: {e}")
+                continue
+        
+        if self.model is None:
+            raise Exception("利用可能なGeminiモデルが見つかりませんでした")
 
     def simulate_ai_buzzer(self, level='normal'):
         """AIの早押し判定をレベルに応じてシミュレート"""
@@ -71,10 +92,30 @@ class QuizGenerator:
         return random.choice(messages[level])
 
     def get_news_article(self):
-        """Yahoo!ニュースから記事を取得"""
+        """サンプル記事を返す（Yahoo!ニュースが利用できない場合のフォールバック）"""
+        # Yahoo!ニュースのスクレイピングが難しい場合のサンプルデータ
+        sample_articles = [
+            {
+                'content': '日本銀行は本日、政策金利を0.1%引き上げることを発表しました。これは2年ぶりの利上げとなり、インフレ対策の一環として実施されます。市場関係者からは慎重な反応が見られており、今後の経済動向に注目が集まっています。',
+                'url': 'https://example.com/news1',
+                'title': '日銀が2年ぶりの利上げを決定'
+            },
+            {
+                'content': '東京都は2025年度から新しい環境税を導入することを発表しました。この税制は企業の二酸化炭素排出量に応じて課税され、環境保護の推進を図ります。対象となる企業は約1000社で、年間約500億円の税収を見込んでいます。',
+                'url': 'https://example.com/news2', 
+                'title': '東京都が新環境税を導入へ'
+            },
+            {
+                'content': '大手自動車メーカーのトヨタ自動車は、2030年までに電気自動車の生産台数を年間350万台に増加させる計画を発表しました。これは現在の約10倍の規模となり、カーボンニュートラル実現に向けた取り組みの一環です。',
+                'url': 'https://example.com/news3',
+                'title': 'トヨタ、EV生産を大幅拡大へ'
+            }
+        ]
+        
         try:
+            # 実際のYahoo!ニュースからの取得を試行
             url = "https://news.yahoo.co.jp/topics/business"
-            response = requests.get(url, headers=self.headers, timeout=15)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
             
@@ -85,7 +126,7 @@ class QuizGenerator:
                 random_article = random.choice(article_links)
                 article_url = random_article.get('href')
                 
-                article_response = requests.get(article_url, headers=self.headers, timeout=15)
+                article_response = requests.get(article_url, headers=self.headers, timeout=10)
                 article_soup = BeautifulSoup(article_response.text, 'html.parser')
                 
                 full_article_link = article_soup.find('a', {
@@ -95,23 +136,25 @@ class QuizGenerator:
                 
                 if full_article_link:
                     full_url = full_article_link.get('href')
-                    full_response = requests.get(full_url, headers=self.headers, timeout=15)
+                    full_response = requests.get(full_url, headers=self.headers, timeout=10)
                     full_soup = BeautifulSoup(full_response.text, 'html.parser')
                     
                     article_content = full_soup.find('div', class_='article_body')
                     if article_content:
                         content_text = ' '.join([p.text.strip() for p in article_content.find_all(['p', 'h2'])])
-                        # 記事情報を辞書として返す
                         return {
-                            'content': content_text[:2000],  # 文字数制限を追加
+                            'content': content_text[:2000],
                             'url': full_url,
                             'title': full_soup.find('h1').text.strip() if full_soup.find('h1') else 'タイトルなし'
                         }
             
-            return None
+            # Yahoo!ニュースからの取得に失敗した場合、サンプル記事を使用
+            print("Yahoo!ニュースからの記事取得に失敗、サンプル記事を使用します")
+            return random.choice(sample_articles)
+            
         except Exception as e:
-            print(f"記事取得エラー: {e}")
-            return None
+            print(f"記事取得エラー: {e} - サンプル記事を使用します")
+            return random.choice(sample_articles)
 
     def generate_quiz(self, text):
         """AIによるクイズ生成"""
