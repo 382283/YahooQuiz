@@ -15,8 +15,8 @@ class QuizGenerator:
             'strong': {
                 'correct_rate': 0.95,  # 95%の正解率
                 'reaction_time': {
-                    'min': 6.0,        # 最速0.3秒
-                    'max': 8.0         # 最長1秒
+                    'min': 6.0,        # 最速6秒
+                    'max': 8.0         # 最長8秒
                 }
             },
             'normal': {
@@ -35,11 +35,7 @@ class QuizGenerator:
             }
         }
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.0-pro', generation_config={
-            'temperature': 0.7,
-            'top_p': 0.8,
-            'top_k': 40
-        })
+        self.model = genai.GenerativeModel('gemini-pro')
 
     def simulate_ai_buzzer(self, level='normal'):
         """AIの早押し判定をレベルに応じてシミュレート"""
@@ -78,7 +74,7 @@ class QuizGenerator:
         """Yahoo!ニュースから記事を取得"""
         try:
             url = "https://news.yahoo.co.jp/topics/business"
-            response = requests.get(url, headers=self.headers, timeout=10)  # タイムアウト追加
+            response = requests.get(url, headers=self.headers, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
             
@@ -89,7 +85,7 @@ class QuizGenerator:
                 random_article = random.choice(article_links)
                 article_url = random_article.get('href')
                 
-                article_response = requests.get(article_url, headers=self.headers, timeout=10)
+                article_response = requests.get(article_url, headers=self.headers, timeout=15)
                 article_soup = BeautifulSoup(article_response.text, 'html.parser')
                 
                 full_article_link = article_soup.find('a', {
@@ -99,14 +95,15 @@ class QuizGenerator:
                 
                 if full_article_link:
                     full_url = full_article_link.get('href')
-                    full_response = requests.get(full_url, headers=self.headers, timeout=10)
+                    full_response = requests.get(full_url, headers=self.headers, timeout=15)
                     full_soup = BeautifulSoup(full_response.text, 'html.parser')
                     
                     article_content = full_soup.find('div', class_='article_body')
                     if article_content:
-                    # 記事情報を辞書として返す
+                        content_text = ' '.join([p.text.strip() for p in article_content.find_all(['p', 'h2'])])
+                        # 記事情報を辞書として返す
                         return {
-                            'content': ' '.join([p.text.strip() for p in article_content.find_all(['p', 'h2'])]),
+                            'content': content_text[:2000],  # 文字数制限を追加
                             'url': full_url,
                             'title': full_soup.find('h1').text.strip() if full_soup.find('h1') else 'タイトルなし'
                         }
@@ -121,11 +118,11 @@ class QuizGenerator:
         try:
             prompt = f"""
 以下の文章から時事ネタのクイズを作成してください。
-1単語で答えられる問題にしてください。
+1単語または短い語句で答えられる問題にしてください。
 以下のフォーマットで出力してください：
 
 Question: （ここに問題文）
-Answer: （ここに1単語で答え）
+Answer: （ここに1単語または短い語句で答え）
 Explanation: （ここに解説）
 
 文章:
@@ -138,6 +135,7 @@ Explanation: （ここに解説）
                 quiz_data = {}
                 
                 for line in lines:
+                    line = line.strip()
                     if line.startswith('Question:'):
                         quiz_data['question'] = line.replace('Question:', '').strip()
                     elif line.startswith('Answer:'):
@@ -145,23 +143,31 @@ Explanation: （ここに解説）
                     elif line.startswith('Explanation:'):
                         quiz_data['explanation'] = line.replace('Explanation:', '').strip()
                 
-                return quiz_data
+                # 必要なフィールドが全て揃っているかチェック
+                if all(key in quiz_data for key in ['question', 'answer', 'explanation']):
+                    return quiz_data
+                else:
+                    print(f"クイズデータ不完全: {quiz_data}")
+                    return None
                 
             return None
         except Exception as e:
             print(f"クイズ生成エラー: {e}")
             return None
 
-
     def create_quiz(self):
         """記事取得からクイズ生成までの一連の処理"""
-        article_data = self.get_news_article()
-        if article_data:
-            quiz_data = self.generate_quiz(article_data['content'])
-            if quiz_data:
-                # クイズデータに記事情報を追加
-                quiz_data['article_content'] = article_data['content']
-                quiz_data['article_url'] = article_data['url']
-                quiz_data['article_title'] = article_data['title']
-                return quiz_data
-        return None
+        try:
+            article_data = self.get_news_article()
+            if article_data:
+                quiz_data = self.generate_quiz(article_data['content'])
+                if quiz_data:
+                    # クイズデータに記事情報を追加
+                    quiz_data['article_content'] = article_data['content']
+                    quiz_data['article_url'] = article_data['url']
+                    quiz_data['article_title'] = article_data['title']
+                    return quiz_data
+            return None
+        except Exception as e:
+            print(f"クイズ作成エラー: {e}")
+            return None
