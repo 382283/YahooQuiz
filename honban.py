@@ -35,7 +35,11 @@ class QuizGenerator:
             }
         }
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.0-pro')
+        self.model = genai.GenerativeModel('gemini-pro', generation_config={
+            'temperature': 0.7,
+            'top_p': 0.8,
+            'top_k': 40
+        })
 
     def simulate_ai_buzzer(self, level='normal'):
         """AIの早押し判定をレベルに応じてシミュレート"""
