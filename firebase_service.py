@@ -129,7 +129,17 @@ class FirebaseService:
         """統計情報を取得"""
         if not self.db:
             print("Firebase: データベース接続が利用できません")
-            return {}
+            return {
+                "total_games": 0,
+                "total_questions": 0,
+                "player_wins": 0,
+                "ai_wins": 0,
+                "draws": 0,
+                "average_player_score": 0,
+                "average_ai_score": 0,
+                "ai_level_distribution": {"strong": 0, "normal": 0, "weak": 0},
+                "win_rate": 0,
+            }
 
         try:
             docs = self.db.collection("quiz_results").stream()
@@ -181,7 +191,17 @@ class FirebaseService:
 
         except Exception as e:
             print(f"Firebase: 統計取得エラー - {e}")
-            return {}
+            return {
+                "total_games": 0,
+                "total_questions": 0,
+                "player_wins": 0,
+                "ai_wins": 0,
+                "draws": 0,
+                "average_player_score": 0,
+                "average_ai_score": 0,
+                "ai_level_distribution": {"strong": 0, "normal": 0, "weak": 0},
+                "win_rate": 0,
+            }
 
     def save_individual_question_result(
         self,
@@ -221,4 +241,3 @@ class FirebaseService:
         except Exception as e:
             print(f"Firebase: 問題結果保存エラー - {e}")
             return None
-

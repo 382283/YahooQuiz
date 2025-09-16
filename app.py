@@ -5,6 +5,10 @@ from honban import QuizGenerator
 from firebase_service import FirebaseService
 import os
 import time
+from dotenv import load_dotenv
+
+# .envファイルを読み込み
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
@@ -16,8 +20,13 @@ if not api_key:
 
 quiz_generator = QuizGenerator(api_key=api_key)
 
-# Firebaseサービスのインスタンスを作成
-firebase_service = FirebaseService()
+# Firebaseサービスのインスタンスを作成（エラー時は無効化）
+try:
+    firebase_service = FirebaseService()
+    print("Firebase: サービス初期化成功")
+except Exception as e:
+    print(f"Firebase: 初期化失敗 - {e}")
+    firebase_service = None
 
 
 @app.route("/")
@@ -210,14 +219,15 @@ def result():
     if "game_start_time" in session:
         game_duration = round(time.time() - session["game_start_time"], 2)
 
-    # 結果をFirebaseに保存
-    firebase_service.save_quiz_result(
-        session["score"]["player"],
-        session["score"]["ai"],
-        session["total_rounds"],
-        ai_level,
-        game_duration,
-    )
+    # 結果をFirebaseに保存（Firebase接続がある場合のみ）
+    if firebase_service is not None:
+        firebase_service.save_quiz_result(
+            session["score"]["player"],
+            session["score"]["ai"],
+            session["total_rounds"],
+            ai_level,
+            game_duration,
+        )
 
     return render_template(
         "result.html",
@@ -232,8 +242,22 @@ def result():
 @app.route("/stats")
 def stats():
     """統計情報ページ"""
-    recent_results = firebase_service.get_recent_results(limit=20)
-    statistics = firebase_service.get_statistics()
+    # Firebase接続がない場合はデフォルト値を返す
+    if firebase_service is None:
+        recent_results = []
+        statistics = {
+            "total_games": 0,
+            "total_questions": 0,
+            "player_wins": 0,
+            "ai_wins": 0,
+            "draws": 0,
+            "average_player_score": 0,
+            "average_ai_score": 0,
+            "ai_level_distribution": {"strong": 0, "normal": 0, "weak": 0},
+        }
+    else:
+        recent_results = firebase_service.get_recent_results(limit=20)
+        statistics = firebase_service.get_statistics()
 
     return render_template(
         "stats.html", recent_results=recent_results, statistics=statistics
