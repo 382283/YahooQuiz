@@ -8,15 +8,16 @@ import time
 from dotenv import load_dotenv
 
 # .envファイルを読み込み
-load_dotenv()
+load_dotenv(dotenv_path=".env")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
 # QuizGeneratorのインスタンスを作成（環境変数からAPIキーを取得）
-api_key = os.environ.get("GEMINI_API_KEY")
+api_key = os.getenv("GEMINI_API_KEY")
+
 if not api_key:
-    raise ValueError("GEMINI_API_KEY environment variable is required")
+    raise ValueError("❌ .envからGEMINI_API_KEYを取得できませんでした。ファイルの場所と内容を確認してください。")
 
 quiz_generator = QuizGenerator(api_key=api_key)
 
@@ -69,6 +70,10 @@ def quiz():
             return render_template(
                 "quiz.html",
                 question=quiz_data["question"],
+                choice_a=quiz_data["choice_a"],
+                choice_b=quiz_data["choice_b"],
+                choice_c=quiz_data["choice_c"],
+                choice_d=quiz_data["choice_d"],
                 article_content=quiz_data["article_content"],
                 article_url=quiz_data["article_url"],
                 article_title=quiz_data["article_title"],
@@ -104,8 +109,8 @@ def quiz():
 
         if player_time < ai_time:
             print("\n✨ プレイヤーが早押し成功！")
-            user_answer = request.form.get("answer", "").strip().lower()
-            correct_answer = quiz_data.get("answer", "").lower()
+            user_answer = request.form.get("answer", "").strip().upper()
+            correct_answer = quiz_data.get("answer", "").upper()
 
             print(f"問題: {quiz_data.get('question')}")
             print(f"プレイヤーの回答: {user_answer}")
@@ -180,6 +185,10 @@ def quiz():
         return render_template(
             "quiz.html",
             question=quiz_data["question"],
+            choice_a=quiz_data["choice_a"],
+            choice_b=quiz_data["choice_b"],
+            choice_c=quiz_data["choice_c"],
+            choice_d=quiz_data["choice_d"],
             answer=quiz_data["answer"],
             explanation=quiz_data.get("explanation", ""),
             result=result,
@@ -197,6 +206,10 @@ def api_quiz():
         return jsonify(
             {
                 "question": quiz_data["question"],
+                "choice_a": quiz_data["choice_a"],
+                "choice_b": quiz_data["choice_b"],
+                "choice_c": quiz_data["choice_c"],
+                "choice_d": quiz_data["choice_d"],
                 "article_content": quiz_data["article_content"],
                 "article_url": quiz_data["article_url"],
                 "article_title": quiz_data["article_title"],
