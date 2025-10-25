@@ -17,7 +17,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
-    raise ValueError("❌ .envからGEMINI_API_KEYを取得できませんでした。ファイルの場所と内容を確認してください。")
+    print("⚠️ GEMINI_API_KEYが設定されていません。デフォルト値を使用します。")
+    api_key = "dummy_key"  # デフォルト値
 
 quiz_generator = QuizGenerator(api_key=api_key)
 
@@ -30,7 +31,7 @@ except Exception as e:
     firebase_service = None
 
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def index():
     """トップページ"""
     return render_template("index.html")
@@ -291,6 +292,21 @@ def api_statistics():
     stats = firebase_service.get_statistics()
     return jsonify(stats)
 
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Method Not Allowed エラーのハンドリング"""
+    return render_template("error.html", error_message="このページは正しい方法でアクセスしてください。"), 405
+
+@app.errorhandler(404)
+def not_found(error):
+    """Not Found エラーのハンドリング"""
+    return render_template("error.html", error_message="ページが見つかりません。"), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Internal Server Error のハンドリング"""
+    return render_template("error.html", error_message="サーバー内部エラーが発生しました。"), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
