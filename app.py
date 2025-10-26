@@ -17,10 +17,16 @@ app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
-    print("⚠️ GEMINI_API_KEYが設定されていません。デフォルト値を使用します。")
-    api_key = "dummy_key"  # デフォルト値
-
-quiz_generator = QuizGenerator(api_key=api_key)
+    print("❌ エラー: GEMINI_API_KEY環境変数が設定されていません。")
+    print("HerokuのConfig VarsでGEMINI_API_KEYを設定してください。")
+    quiz_generator = None
+else:
+    try:
+        quiz_generator = QuizGenerator(api_key=api_key)
+        print("✓ QuizGeneratorの初期化に成功しました")
+    except Exception as e:
+        print(f"❌ QuizGeneratorの初期化に失敗: {e}")
+        quiz_generator = None
 
 # Firebaseサービスのインスタンスを作成（エラー時は無効化）
 try:
@@ -64,6 +70,11 @@ def quiz():
     if request.method == "GET":
         # 新しい問題の用意
         try:
+            if quiz_generator is None:
+                error_msg = "クイズ生成サービスが初期化されていません。GEMINI_API_KEY環境変数が正しく設定されているか確認してください。"
+                print(f"クイズ生成失敗: quiz_generator is None")
+                return render_template("error.html", error_message=error_msg), 500
+            
             quiz_data = quiz_generator.create_quiz()
             if quiz_data:
                 session["current_quiz"] = quiz_data
@@ -298,17 +309,30 @@ def api_statistics():
 @app.errorhandler(405)
 def method_not_allowed(error):
     """Method Not Allowed エラーのハンドリング"""
-    return render_template("error.html", error_message="このページは正しい方法でアクセスしてください。"), 405
+    return (
+        render_template(
+            "error.html", error_message="このページは正しい方法でアクセスしてください。"
+        ),
+        405,
+    )
+
 
 @app.errorhandler(404)
 def not_found(error):
     """Not Found エラーのハンドリング"""
     return render_template("error.html", error_message="ページが見つかりません。"), 404
 
+
 @app.errorhandler(500)
 def internal_error(error):
     """Internal Server Error のハンドリング"""
-    return render_template("error.html", error_message="サーバー内部エラーが発生しました。"), 500
+    return (
+        render_template(
+            "error.html", error_message="サーバー内部エラーが発生しました。"
+        ),
+        500,
+    )
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

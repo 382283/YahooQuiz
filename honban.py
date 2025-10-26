@@ -9,6 +9,12 @@ import os
 class QuizGenerator:
     def __init__(self, api_key):
         self.api_key = api_key
+        
+        # APIキーの検証
+        if not api_key or api_key == "dummy_key":
+            print("⚠️ 警告: GEMINI_API_KEYが設定されていません")
+            raise ValueError("GEMINI_API_KEY環境変数が設定されていません。HerokuのConfig Varsで設定してください。")
+        
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
@@ -26,6 +32,8 @@ class QuizGenerator:
                 "reaction_time": {"min": 10.0, "max": 15.0},
             },
         }
+        
+        print(f"APIキーの最初の10文字: {api_key[:10]}...")
         genai.configure(api_key=self.api_key)
 
         # 複数のモデル名を試す
@@ -47,7 +55,7 @@ class QuizGenerator:
                 continue
 
         if self.model is None:
-            raise Exception("利用可能なGeminiモデルが見つかりませんでした")
+            raise Exception("利用可能なGeminiモデルが見つかりませんでした。APIキーが正しいか確認してください。")
 
     def simulate_ai_buzzer(self, level="normal"):
         """AIの早押し判定をレベルに応じてシミュレート"""
