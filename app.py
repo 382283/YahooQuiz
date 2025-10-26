@@ -63,34 +63,36 @@ def quiz():
 
     if request.method == "GET":
         # 新しい問題の用意
-        quiz_data = quiz_generator.create_quiz()
-        if quiz_data:
-            session["current_quiz"] = quiz_data
-            session["ai_buzzer_time"] = quiz_generator.simulate_ai_buzzer(ai_level)
-            ai_thinking = quiz_generator.get_ai_thinking_message(ai_level)
-            return render_template(
-                "quiz.html",
-                question=quiz_data["question"],
-                choice_a=quiz_data["choice_a"],
-                choice_b=quiz_data["choice_b"],
-                choice_c=quiz_data["choice_c"],
-                choice_d=quiz_data["choice_d"],
-                article_content=quiz_data["article_content"],
-                article_url=quiz_data["article_url"],
-                article_title=quiz_data["article_title"],
-                round=session["round"] + 1,
-                total=session["total_rounds"],
-                ai_level=ai_level,
-                ai_thinking=ai_thinking,
-            )
-        else:
-            # quiz_dataが取得できなかった場合のエラーハンドリング
-            return (
-                render_template(
-                    "error.html", error_message="クイズの生成に失敗しました。"
-                ),
-                500,
-            )
+        try:
+            quiz_data = quiz_generator.create_quiz()
+            if quiz_data:
+                session["current_quiz"] = quiz_data
+                session["ai_buzzer_time"] = quiz_generator.simulate_ai_buzzer(ai_level)
+                ai_thinking = quiz_generator.get_ai_thinking_message(ai_level)
+                return render_template(
+                    "quiz.html",
+                    question=quiz_data["question"],
+                    choice_a=quiz_data["choice_a"],
+                    choice_b=quiz_data["choice_b"],
+                    choice_c=quiz_data["choice_c"],
+                    choice_d=quiz_data["choice_d"],
+                    article_content=quiz_data["article_content"],
+                    article_url=quiz_data["article_url"],
+                    article_title=quiz_data["article_title"],
+                    round=session["round"] + 1,
+                    total=session["total_rounds"],
+                    ai_level=ai_level,
+                    ai_thinking=ai_thinking,
+                )
+            else:
+                # quiz_dataが取得できなかった場合のエラーハンドリング
+                error_msg = "クイズの生成に失敗しました。APIキーが正しく設定されているか確認してください。"
+                print(f"クイズ生成失敗: quiz_data is None")
+                return render_template("error.html", error_message=error_msg), 500
+        except Exception as e:
+            error_msg = f"クイズの生成中にエラーが発生しました: {str(e)}"
+            print(f"クイズ生成エラー: {e}")
+            return render_template("error.html", error_message=error_msg), 500
 
     elif request.method == "POST":
         quiz_data = session.get("current_quiz", {})
