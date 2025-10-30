@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify
 from datetime import datetime
 from honban import QuizGenerator
@@ -6,34 +5,42 @@ from firebase_service import FirebaseService
 import os
 import time
 from dotenv import load_dotenv
+from pathlib import Path
 
-# .envファイルを読み込み
-load_dotenv(dotenv_path=".env")
+# ✅ .envファイルを読み込み（app.pyと同階層）
+env_path = Path(__file__).resolve().parent / ".env"
+try:
+    load_dotenv(dotenv_path=env_path)
+    print("✅ .envファイルの読み込みに成功しました")
+except Exception as e:
+    print(f"⚠️ .envファイルの読み込みに失敗: {e}")
 
+
+print(f"🔍 GEMINI_API_KEY: {os.getenv('GEMINI_API_KEY')[:12]}...")
+
+# ✅ Flaskアプリ初期化
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
-# QuizGeneratorのインスタンスを作成（環境変数からAPIキーを取得）
+# ✅ QuizGenerator初期化
 api_key = os.getenv("GEMINI_API_KEY")
-
 if not api_key:
-    print("❌ エラー: GEMINI_API_KEY環境変数が設定されていません。")
-    print("HerokuのConfig VarsでGEMINI_API_KEYを設定してください。")
+    print("❌ GEMINI_API_KEYが設定されていません。HerokuのConfig Varsを確認してください。")
     quiz_generator = None
 else:
     try:
         quiz_generator = QuizGenerator(api_key=api_key)
-        print("✓ QuizGeneratorの初期化に成功しました")
+        print("✅ QuizGeneratorの初期化に成功しました")
     except Exception as e:
-        print(f"❌ QuizGeneratorの初期化に失敗: {e}")
+        print(f"❌ QuizGenerator初期化エラー: {e}")
         quiz_generator = None
 
-# Firebaseサービスのインスタンスを作成（エラー時は無効化）
+# ✅ Firebaseサービス初期化
 try:
     firebase_service = FirebaseService()
-    print("Firebase: サービス初期化成功")
+    print("✅ Firebase: サービス初期化成功")
 except Exception as e:
-    print(f"Firebase: 初期化失敗 - {e}")
+    print(f"⚠️ Firebase初期化失敗: {e}")
     firebase_service = None
 
 
@@ -74,7 +81,7 @@ def quiz():
                 error_msg = "クイズ生成サービスが初期化されていません。GEMINI_API_KEY環境変数が正しく設定されているか確認してください。"
                 print(f"クイズ生成失敗: quiz_generator is None")
                 return render_template("error.html", error_message=error_msg), 500
-            
+
             quiz_data = quiz_generator.create_quiz()
             if quiz_data:
                 session["current_quiz"] = quiz_data
@@ -336,4 +343,4 @@ def internal_error(error):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
